@@ -1,0 +1,5 @@
+stl_c is a proof-of-concept of the Solana Transport Layer written in C.
+
+Cryptographic algorithms are provided by libsodium.
+
+`make build` will fetch libsodium from GitHub and build the project.
