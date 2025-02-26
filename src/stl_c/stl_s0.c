@@ -109,7 +109,7 @@ stl_s0_server_handle_accept( stl_s0_server_params_t const * server,
 
   stl_s0_hs_pkt_t * out_pkt = (stl_s0_hs_pkt_t *)out;
   memset( out_pkt, 0, sizeof(*out_pkt) );
-  
+
 #if 0
   uint8_t server_commitment[ crypto_hash_sha256_BYTES ];
   crypto_hash_sha256_update( state1, session_id, STL_SESSION_ID_SZ );
@@ -123,7 +123,7 @@ stl_s0_server_handle_accept( stl_s0_server_params_t const * server,
 
   crypto_sign_ed25519_detached(
       out_pkt->verify, NULL, server_signed_msg, sizeof(server_signed_msg), server->identity );
-#endif 
+#endif
 
   /* Send back response */
 
@@ -323,3 +323,73 @@ stl_s0_client_handshake( stl_s0_client_params_t const * client,
   }
 
 }
+
+int64_t
+stl_s0_encode_appdata( stl_s0_client_hs_t * hs,
+                     const uint8_t *      payload, /* TODO: create a 0cp mode */
+                     uint16_t             payload_sz,
+                     uint8_t              pkt_out[ static STL_MTU ] ) {
+  if( hs->state != STL_TYPE_HS_SERVER_ACCEPT ) {
+    return -1; /* TODO - enumerate error codes */
+  } else if( payload_sz > BASIC_PAYLOAD_MTU ) {
+    return -2;
+  }
+
+  uint8_t* ptr = pkt_out;
+  *ptr = 0x1; /* version_type: version 0, type 1 */
+  ptr += 1;
+
+  memcpy( ptr, hs->session_id, STL_SESSION_ID_SZ );
+  ptr += STL_SESSION_ID_SZ;
+
+  memcpy( ptr, payload, payload_sz );
+  ptr += payload_sz;
+
+  /* append some fake MAC */
+  memset( ptr, 0xff, STL_MAC_SZ);
+  ptr += STL_MAC_SZ;
+
+  return ptr-pkt_out;
+}
+
+int64_t
+stl_s0_decode_appdata(stl_s0_server_hs_t* hs,
+                      uint8_t* encoded_buf,
+                      uint16_t encoded_sz,
+                      uint8_t pkt_out[static BASIC_PAYLOAD_MTU]) {
+  /* Check minimum packet size (version + session_id + MAC) */
+  const uint16_t min_size = 1 + STL_SESSION_ID_SZ + STL_MAC_SZ;
+  if( encoded_sz < min_size ) {
+      return -1;
+  }
+
+  uint8_t* ptr = encoded_buf;
+
+  /* Check version and type */
+  if( *ptr != 0x1 ) { // version 0, type 1
+      return -2;
+  }
+  ptr += 1;
+
+  /* Verify session id */
+  if( memcmp( ptr, hs->session_id, STL_SESSION_ID_SZ ) != 0 ) {
+      return -3;
+  }
+  ptr += STL_SESSION_ID_SZ;
+
+  /* Verify MAC (currently fake in encode, so just check for 0xff) */
+  uint8_t* mac_ptr = encoded_buf + encoded_sz - STL_MAC_SZ;
+  for( uint64_t i=0; i<STL_MAC_SZ; i++ ) {
+      if( mac_ptr[i]!= 0xff ) {
+          return -4;
+      }
+  }
+
+  /* Calculate payload size (everything after headers) */
+  int64_t read_sz = mac_ptr - ptr;
+  if( read_sz > 0)
+    memcpy( pkt_out, ptr, (size_t)read_sz );
+
+  return read_sz;
+}
+

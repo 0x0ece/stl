@@ -74,10 +74,15 @@ test_s0_handshake( void ) {
   assert( client_hs.state == STL_TYPE_HS_SERVER_ACCEPT );
 
   puts( "S0 handshake: OK" );
-#if 0
-  uint8_t payload_expected[ STL_MTU ];
-  uint8_t payload[ STL_MTU ];
-  uint16_t payload_expected_sz, payload_sz;
+
+  uint8_t payload[BASIC_PAYLOAD_MTU]; /* FIXME: use the correct MTU here */
+  uint8_t rcv_payload[BASIC_PAYLOAD_MTU];
+  uint16_t payload_sz = BASIC_PAYLOAD_MTU;
+  int64_t rcv_payload_sz;
+
+  for( uint16_t i=0; i<payload_sz; ++i ) {
+    payload[i] = (uint8_t)(i&0xff);
+  }
 
   /*
   stl_endpoint_send_all( payload, ..list_of_dst.. ) {
@@ -93,18 +98,17 @@ test_s0_handshake( void ) {
   }
   */
 
-  client_pkt_sz = stl_s0_endpoint_send( &client_hs, client_pkt, payload_expected, payload_expected_sz /*, config */ );
-  assert( client_pkt_sz>0UL );
+  int64_t encoded_sz = stl_s0_encode_appdata(&client_hs, payload, payload_sz, client_pkt /*, config */);
+  assert(encoded_sz > 0L);
 
   /* client_pkt to net tile -> client_pkt from net tile */
 
-  server_pkt_sz = stl_s0_endpoint_recv( &server_hs, client_pkt, &payload, &payload_sz);
-  assert( server_pkt_sz>0UL );
-  assert( payload_sz == payload_expected_sz );
-  assert( memcmp( payload, payload_expected, payload_expected_sz )==0 );
+  rcv_payload_sz = stl_s0_decode_appdata(&server_hs, client_pkt, (uint16_t)encoded_sz, rcv_payload);
+  assert(server_pkt_sz > 0UL);
+  assert(rcv_payload_sz == payload_sz);
+  assert(memcmp(rcv_payload, payload, (size_t)rcv_payload_sz) == 0);
+  puts("S0 application decode/encode: OK");
 
-  /* TODO: server_send / client_recv */
-#endif
 }
 
 static void

@@ -51,6 +51,15 @@
 
 #define STL_TOKEN_SZ (16UL)
 
+/* STL_MAC_SZ is the byte size of the MAC tag in authenticated packets */
+
+#define STL_MAC_SZ (16UL)
+
+/* BASIC_PAYLOAD_MTU is the MTU of the payload carried by the
+   0x1 frame type */
+
+#define BASIC_PAYLOAD_MTU (STL_MTU - STL_SESSION_ID_SZ - STL_MAC_SZ - 1)
+
 /* stl_hdr_t is the common STL header shared by all packets. */
 
 struct __attribute__((packed)) stl_hdr {
@@ -176,7 +185,7 @@ typedef union stl_s0_hs_pkt stl_s0_hs_pkt_t;
 struct __attribute__((packed)) stl_s1_app_hdr {
   stl_hdr_t base;
 
-  uint8_t  mac_tag[16];
+  uint8_t  mac_tag[STL_MAC_SZ];
   uint32_t seq_compact;
 };
 

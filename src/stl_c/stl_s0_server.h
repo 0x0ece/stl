@@ -50,6 +50,17 @@ stl_s0_server_handshake( stl_s0_server_params_t const * server,
 void
 stl_s0_server_rotate_keys( stl_s0_server_params_t * server );
 
+
+/* stl_s0_decode_appdata is a temp function that
+   unwraps the STL protocol from the payload. It
+   takes encoded_buf off the wire and decodes it
+   into pkt_out */
+int64_t
+stl_s0_decode_appdata( stl_s0_server_hs_t* hs,
+                       uint8_t* encoded_buf,
+                       uint16_t encoded_sz,
+                       uint8_t  pkt_out[static BASIC_PAYLOAD_MTU] );
+
 STL_PROTOTYPES_END
 
 #endif /* HEADER_stl_s0_server_h */

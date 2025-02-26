@@ -22,6 +22,7 @@ struct stl_s0_client_params {
 
 typedef struct stl_s0_client_params stl_s0_client_params_t;
 
+/* TODO: decouple handshake, connection, and client objects*/
 struct stl_s0_client_hs {
   uint8_t server_token[ STL_TOKEN_SZ ]; /* TODO: unnecessary? */
   uint8_t client_token[ STL_TOKEN_SZ ];
@@ -49,6 +50,17 @@ stl_s0_client_handshake( stl_s0_client_params_t const * client,
                          uint8_t const *                pkt_in,
                          uint64_t                       pkt_in_sz,
                          uint8_t                        pkt_out[ static STL_MTU ] );
+
+/*
+  stl_s0_encode_appdata is a temporary function that encodes the payload into
+  pkt_out using STL 0x1. It takes session details from hs. It returns the total
+  number of bytes encoded, or a negative value for err
+*/
+int64_t
+stl_s0_encode_appdata( stl_s0_client_hs_t * hs,
+                     const uint8_t *      payload, /* TODO: create a 0cp mode */
+                     uint16_t             payload_sz,
+                     uint8_t              pkt_out[ static STL_MTU ] );
 
 STL_PROTOTYPES_END
 
