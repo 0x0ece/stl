@@ -196,8 +196,10 @@ Incoming packets with an unsupported `type` MUST be dropped.
 
 | Value  | Protocol    | Meaning              |
 |--------|-------------|----------------------|
-| `0x01` | Application | Data, Simple Mode    |
-| `0x02` | Application | Data, Encrypted Mode |
+| `0x01` | Application | Data, Simple Mode    | ~
+| `0x02` | Application | Data, Auth Mode      |
+| `0x03` | Application | Data, Encrypted Mode | ~
+| `0x04` | Application | Data, TLV            |
 | `0x81` | Handshake   | Client Initial       |
 | `0x82` | Handshake   | Server Continue      |
 | `0x83` | Handshake   | Client Accept        |

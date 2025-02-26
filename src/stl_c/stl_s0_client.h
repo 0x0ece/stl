@@ -23,7 +23,7 @@ struct stl_s0_client_params {
 typedef struct stl_s0_client_params stl_s0_client_params_t;
 
 struct stl_s0_client_hs {
-  uint8_t server_token[ STL_TOKEN_SZ ];
+  uint8_t server_token[ STL_TOKEN_SZ ]; /* TODO: unnecessary? */
   uint8_t client_token[ STL_TOKEN_SZ ];
   crypto_hash_sha256_state transcript;
   uint8_t state;

@@ -156,7 +156,7 @@ union __attribute__((packed)) stl_s0_hs_pkt {
 
     uint8_t  identity[32];
     uint8_t  key_share[32];
-    uint8_t  verify[64];
+    uint8_t  verify[64]; /* signature */
     uint8_t  client_token[ STL_TOKEN_SZ ];
     uint8_t  server_token[ STL_TOKEN_SZ ];
   };

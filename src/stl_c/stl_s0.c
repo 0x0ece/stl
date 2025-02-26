@@ -10,11 +10,13 @@
 #include <sodium/crypto_shorthash_siphash24.h>
 #include <sodium/randombytes.h>
 
+#if 0
 static char const sign_prefix_server[32] =
   "STL v0 s0 server transcript     ";
 
 static char const sign_prefix_client[32] =
   "STL v0 s0 client transcript     ";
+#endif
 
 static uint64_t
 stl_s0_server_handle_initial( stl_s0_server_params_t const * server,
@@ -76,7 +78,7 @@ stl_s0_server_handle_accept( stl_s0_server_params_t const * server,
 
   uint8_t server_pubkey[32];
   crypto_sign_ed25519_sk_to_pk( server_pubkey, server->identity );
-
+#if 0
   crypto_hash_sha256_state state0[1];
   crypto_hash_sha256_state state1[1];
   crypto_hash_sha256_init( state0 );
@@ -96,27 +98,22 @@ stl_s0_server_handle_accept( stl_s0_server_params_t const * server,
   int vfy_err = crypto_sign_ed25519_verify_detached(
       pkt->verify, client_signed_msg, sizeof(client_signed_msg), pkt->identity );
   if( vfy_err ) return 0UL;
+#endif
 
   /* Derive session ID */
 
   uint8_t session_id[ STL_SESSION_ID_SZ ];
   stl_gen_session_id( session_id );
 
-  uint8_t server_commitment[ crypto_hash_sha256_BYTES ];
-  crypto_hash_sha256_update( state1, session_id, STL_SESSION_ID_SZ );
-  crypto_hash_sha256_final( state1, server_commitment );
-
-  /* Send back response */
+  /* Prepare response */
 
   stl_s0_hs_pkt_t * out_pkt = (stl_s0_hs_pkt_t *)out;
   memset( out_pkt, 0, sizeof(*out_pkt) );
-
-  out_pkt->hs.base.version_type = stl_hdr_version_type( STL_V0, STL_TYPE_HS_SERVER_ACCEPT );
-  out_pkt->hs.suite = STL_SUITE_S0;
-  memcpy( out_pkt->hs.cookie,    pkt->hs.cookie,    STL_COOKIE_SZ );
-  memcpy( out_pkt->client_token, pkt->client_token, STL_TOKEN_SZ  );
-  memcpy( out_pkt->server_token, server->token,     STL_TOKEN_SZ  );
-  memcpy( out_pkt->hs.base.session_id, session_id, STL_SESSION_ID_SZ );
+  
+#if 0
+  uint8_t server_commitment[ crypto_hash_sha256_BYTES ];
+  crypto_hash_sha256_update( state1, session_id, STL_SESSION_ID_SZ );
+  crypto_hash_sha256_final( state1, server_commitment );
 
   /* Sign verify */
 
@@ -126,6 +123,16 @@ stl_s0_server_handle_accept( stl_s0_server_params_t const * server,
 
   crypto_sign_ed25519_detached(
       out_pkt->verify, NULL, server_signed_msg, sizeof(server_signed_msg), server->identity );
+#endif 
+
+  /* Send back response */
+
+  out_pkt->hs.base.version_type = stl_hdr_version_type( STL_V0, STL_TYPE_HS_SERVER_ACCEPT );
+  out_pkt->hs.suite = STL_SUITE_S0;
+  memcpy( out_pkt->hs.cookie,    pkt->hs.cookie,    STL_COOKIE_SZ );
+  memcpy( out_pkt->client_token, pkt->client_token, STL_TOKEN_SZ  );
+  memcpy( out_pkt->server_token, server->token,     STL_TOKEN_SZ  );
+  memcpy( out_pkt->hs.base.session_id, session_id, STL_SESSION_ID_SZ );
 
   /* Return info to caller */
 
@@ -212,10 +219,10 @@ stl_s0_client_handle_continue( stl_s0_client_params_t const * client,
     return 0UL;
 
   /* Create transcript hash */
-
   uint8_t client_identity[ crypto_sign_ed25519_PUBLICKEYBYTES ];
   crypto_sign_ed25519_sk_to_pk( client_identity, client->identity );
 
+#if 0
   crypto_hash_sha256_state state[1];
   crypto_hash_sha256_init( state );
   crypto_hash_sha256_update( state, hs->server_identity, crypto_sign_ed25519_PUBLICKEYBYTES );
@@ -223,22 +230,24 @@ stl_s0_client_handle_continue( stl_s0_client_params_t const * client,
   crypto_hash_sha256_update( state, pkt->server_token,   STL_TOKEN_SZ );
   crypto_hash_sha256_update( state, hs->client_token,    STL_TOKEN_SZ );
   crypto_hash_sha256_update( state, (uint8_t const *)&pkt->hs.suite, sizeof(uint16_t) );
+  /* FIXME: add cookie to hash */
   hs->transcript = *state;
 
-  uint8_t client_signed_msg[ 64 ];
+  uint8_t client_signed_msg[ 64 ]; /* TODO: client_to_be_signed :) */
   memcpy( client_signed_msg, sign_prefix_client, 32 );
   crypto_hash_sha256_final( state, client_signed_msg+32 );
 
+#endif
   /* Assemble response */
-
   memset( out, 0, 1200UL );
   stl_s0_hs_pkt_t * out_pkt = (stl_s0_hs_pkt_t *)out;
 
+#if 0
   /* Sign */
 
   int sign_err = crypto_sign_ed25519_detached( out_pkt->verify, NULL, client_signed_msg, sizeof(client_signed_msg), client->identity );
   if( STL_UNLIKELY( sign_err ) ) return 0UL;
-
+#endif
   out_pkt->hs.base.version_type = stl_hdr_version_type( STL_V0, STL_TYPE_HS_CLIENT_ACCEPT );
   out_pkt->hs.suite = STL_SUITE_S0;
   memcpy( out_pkt->hs.cookie,    pkt->hs.cookie,    STL_COOKIE_SZ );
@@ -258,6 +267,7 @@ stl_s0_client_handle_accept( stl_s0_hs_pkt_t const * pkt,
   if( STL_UNLIKELY( stl_hdr_type( &pkt->hs.base ) != STL_TYPE_HS_SERVER_ACCEPT ) )
     return 0UL;
 
+#if 0
   /* Derive server commitment */
 
   crypto_hash_sha256_state state[1];
@@ -273,6 +283,7 @@ stl_s0_client_handle_accept( stl_s0_hs_pkt_t const * pkt,
   int vfy_err = crypto_sign_ed25519_verify_detached(
       pkt->verify, signed_msg, sizeof(signed_msg), hs->server_identity );
   if( vfy_err ) return 0UL;
+#endif
 
   /* Success!  Return info to caller */
 

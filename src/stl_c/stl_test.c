@@ -30,7 +30,7 @@ test_s0_handshake( void ) {
   stl_s0_server_params_t server = {0};
   crypto_sign_ed25519_seed_keypair( scratch, server.identity, server_identity_seed );
   server.cookie_secret[15] = 0x02;
-  server.token[15] = 0x03;
+  server.token[15] = 0x03; /* FIXME: shouldn't this be rng in stl_s0_server_handshake? */
 
   stl_s0_client_params_t client = {0};
   crypto_sign_ed25519_seed_keypair( scratch, client.identity, client_identity_seed );
@@ -39,6 +39,7 @@ test_s0_handshake( void ) {
   stl_s0_server_hs_t server_hs = {0};
   stl_s0_client_hs_t client_hs; stl_s0_client_hs_new( &client_hs );
 
+  /* FIXME: create fn to init with server identity and gen token */
   crypto_sign_ed25519_sk_to_pk( client_hs.server_identity, server.identity );
   client_hs.client_token[15] = 0x13;
 
@@ -69,10 +70,41 @@ test_s0_handshake( void ) {
   assert( server_hs.done );
 
   client_pkt_sz = stl_s0_client_handshake( &client, &client_hs, server_pkt, server_pkt_sz, client_pkt );
-  assert( client_pkt_sz==0UL );
+  assert( client_pkt_sz==0UL ); /* FIXME: 0 should not be both error and success */
   assert( client_hs.state == STL_TYPE_HS_SERVER_ACCEPT );
 
   puts( "S0 handshake: OK" );
+#if 0
+  uint8_t payload_expected[ STL_MTU ];
+  uint8_t payload[ STL_MTU ];
+  uint16_t payload_expected_sz, payload_sz;
+
+  /*
+  stl_endpoint_send_all( payload, ..list_of_dst.. ) {
+    if (multicast_enabled) {
+      stl_s0_endpoint_send(..., config={ multicast })
+    }
+    for dst in list_of_dst {
+      if dst.is_multicast {
+        continue
+      }
+      stl_s0_endpoint_send(..., config={ })
+    }
+  }
+  */
+
+  client_pkt_sz = stl_s0_endpoint_send( &client_hs, client_pkt, payload_expected, payload_expected_sz /*, config */ );
+  assert( client_pkt_sz>0UL );
+
+  /* client_pkt to net tile -> client_pkt from net tile */
+
+  server_pkt_sz = stl_s0_endpoint_recv( &server_hs, client_pkt, &payload, &payload_sz);
+  assert( server_pkt_sz>0UL );
+  assert( payload_sz == payload_expected_sz );
+  assert( memcmp( payload, payload_expected, payload_expected_sz )==0 );
+
+  /* TODO: server_send / client_recv */
+#endif
 }
 
 static void
